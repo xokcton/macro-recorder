@@ -1,0 +1,21 @@
+[package]
+name = "macro-recorder-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "mrec"
+path = "src/main.rs"
+
+[dependencies]
+mrcore = { path = "../core" }
+serde_json = { workspace = true }
+
+[features]
+# Пробрасывает evdev-бэкенд из mrcore: `mrec play --backend evdev ...`.
+# Только Linux — см. core/Cargo.toml и README, раздел «Известные ограничения».
+evdev = ["mrcore/evdev"]

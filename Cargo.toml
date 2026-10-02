@@ -1,0 +1,47 @@
+[workspace]
+resolver = "2"
+members = ["core", "app", "cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+# Формально сам проект написан под edition 2021, но часть транзитивных
+# зависимостей (getrandom, через uuid/xcap) требует Cargo, умеющий как минимум
+# читать манифесты edition2024 — это стабилизировано в Rust 1.85. Собрать
+# проект более старым Cargo не получится, даже не начиная компиляцию нашего
+# кода: резолвер упадёт на разборе чужого Cargo.toml.
+rust-version = "1.85"
+authors = ["Macro Recorder Contributors"]
+license = "MIT"
+repository = "https://github.com/xokcton/macro-recorder"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+anyhow = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+directories = "5"
+crossbeam-channel = "0.5"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Профиль для релизных сборок: чуть дольше компилируется, зато меньше и быстрее бинарник
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+# Патченый rdevin (см. vendor/rdevin-0.1.0/README-PATCH.md): добавлена
+# поддержка средней/боковых кнопок мыши на macOS, которых нет в версии с
+# crates.io. Патч меняет только src/macos/{common,simulate}.rs — Linux/Windows
+# бэкенды не тронуты.
+[patch.crates-io]
+rdevin = { path = "vendor/rdevin-0.1.0" }

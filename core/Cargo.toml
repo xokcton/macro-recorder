@@ -1,0 +1,60 @@
+[package]
+name = "mrcore"
+description = "Платформонезависимое ядро: запись/воспроизведение макросов, тайминги, хранение"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rdevin = { version = "0.1", features = ["serde"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+directories.workspace = true
+tracing.workspace = true
+# Кодирование миниатюр screen-guard в JSON компактной base64-строкой вместо
+# JSON-массива байт. Сам крейт — чистая арифметика без транзитивных
+# зависимостей, поэтому он не под фичей screen-guard: нужен всегда, чтобы
+# формат макроса (де)сериализовался одинаково независимо от того, собран ли
+# бинарник с screen-guard или без него (макрос, записанный с ним, должен
+# нормально ЗАГРУЖАТЬСЯ и в сборке без фичи, просто без возможности заново
+# сверить отпечаток).
+base64 = "0.22"
+# Опционально — только под фичей screen-guard, см. src/screen_guard/xcap_guard.rs
+xcap = { version = "0.9", optional = true }
+# Опционально и только на Linux — прямое чтение /dev/input (крейт evdev).
+# Единственный способ ЗАПИСЫВАТЬ ввод на чистом Wayland (см. src/backend/evdev_backend.rs).
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = { version = "0.13", optional = true }
+
+[features]
+default = []
+# Лёгкая (perceptual hash, без нейросетей) защита от "уехавшего" интерфейса:
+# см. src/screen_guard/mod.rs. Выключено по умолчанию специально — так на
+# по-настоящему слабых машинах или в минимальной сборке можно не тянуть xcap
+# вообще (это единственная тяжёлая платформенная зависимость в проекте).
+screen-guard = ["dep:xcap"]
+# Экспериментально: чтение И воспроизведение ввода напрямую через ядро —
+# /dev/input (запись) + /dev/uinput (воспроизведение), только Linux, см.
+# src/backend/evdev_backend.rs. Нужен доступ на чтение к /dev/input/* и на
+# запись к /dev/uinput — обычно достаточно членства в группе `input`, но на
+# части дистрибутивов /dev/uinput дополнительно требует отдельного udev-правила
+# (см. README, раздел «Известные ограничения»).
+evdev = ["dep:evdev"]
+
+[dev-dependencies]
+tempfile = "3"
+
+# Спайк evdev-бэкенда: собирается ТОЛЬКО при включённой фиче, иначе обычный
+# `cargo test/build` падал бы, пытаясь собрать все examples автоматически.
+[[example]]
+name = "spike_evdev"
+required-features = ["evdev"]
+
+[[example]]
+name = "spike_evdev_play"
+required-features = ["evdev"]

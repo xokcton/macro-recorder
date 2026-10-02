@@ -1,0 +1,56 @@
+[package]
+name = "macro-recorder-app"
+description = "Настольное GUI-приложение поверх mrcore"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[package.metadata.wix]
+upgrade-guid = "C8F0C125-0BE0-4209-B5DC-28EBCB8993D6"
+path-guid = "765E313F-5637-43EA-B201-9282A8A0809A"
+license = false
+eula = false
+
+[[bin]]
+name = "macro-recorder"
+path = "src/main.rs"
+
+[dependencies]
+mrcore = { path = "../core" }
+eframe = "=0.33.3"
+egui = "=0.33.3"
+uuid.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+global-hotkey = "0.8"
+serde.workspace = true
+serde_json.workspace = true
+# Трей-иконка — опционально (фича "tray", включена по умолчанию). На Linux
+# тянет GTK/libappindicator как системную зависимость сборки — для по-настоящему
+# минимальной/слабой сборки её можно выключить: `cargo build --no-default-features`.
+tray-icon = { version = "0.24", optional = true, default-features = false, features = ["gtk"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { version = "0.18", optional = true }
+# Клиент xdg-desktop-portal — глобальные хоткеи на чистом Wayland
+# (интерфейс GlobalShortcuts), см. src/portal_hotkeys.rs. Тяжёлый стек
+# (zbus) прячем за опциональной фичей portal-hotkeys.
+ashpd = { version = "0.13", optional = true, default-features = false, features = ["async-io", "global_shortcuts"] }
+futures-lite = { version = "2", optional = true }
+
+[features]
+default = ["tray"]
+tray = ["dep:tray-icon", "dep:gtk"]
+# Экран-сторож — опционально, тянет `xcap` (см. `core/Cargo.toml`) и системные
+# зависимости захвата экрана. Выключено по умолчанию: `cargo build --release
+# --features screen-guard` (эта фича сама включает одноимённую фичу `mrcore`,
+# отдельно указывать `mrcore/screen-guard` не нужно).
+screen-guard = ["mrcore/screen-guard"]
+# Экспериментально: бэкенд evdev (Wayland: запись+/dev/uinput-проигрывание).
+# Форвардит одноимённую фичу mrcore — тот же приём, что у screen-guard.
+evdev = ["mrcore/evdev"]
+# Глобальные хоткеи на чистом Wayland через портал (зависимости выше —
+# только Linux, поэтому на других ОС фича просто ничего не тянет).
+portal-hotkeys = ["dep:ashpd", "dep:futures-lite"]
